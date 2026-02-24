@@ -101,6 +101,19 @@
             background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(4px);
         }
+
+        /* Sidebar Slide Effects */
+        #sidebar {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+        @media (max-width: 767px) {
+            #sidebar {
+                transform: translateX(-100%);
+            }
+        }
     </style>
 </head>
 <body class="h-screen w-screen flex antialiased">
@@ -163,7 +176,7 @@
         <div id="mobileOverlay" class="fixed inset-0 bg-black/80 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
 
         <!-- SIDEBAR: Folders -->
-        <aside id="sidebar" class="absolute md:relative inset-y-0 left-0 z-40 w-72 bat-panel border-y-0 border-l-0 flex flex-col h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        <aside id="sidebar" class="absolute md:relative inset-y-0 left-0 z-40 w-72 bat-panel border-y-0 border-l-0 flex flex-col h-full -translate-x-full md:translate-x-0">
             <!-- Brand -->
             <div class="h-16 flex items-center px-6 border-b border-[#2a2a2a] shrink-0">
                 <img src="Pear.png" alt="Pear Logo" class="h-8 w-auto mr-3 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
@@ -229,7 +242,7 @@
             </header>
 
             <!-- Contacts Grid -->
-            <div class="flex-1 overflow-y-auto p-4 md:p-8 relative">
+            <div class="flex-1 overflow-y-auto p-4 md:p-8 relative" id="contactsContainer">
                 <!-- Empty State -->
                 <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-gray-600 hidden">
                     <i class="ph ph-folder-open text-6xl mb-4 opacity-50"></i>
@@ -357,6 +370,7 @@
             renameFolderBtn: document.getElementById('renameFolderBtn'),
             searchInput: document.getElementById('searchInput'),
             contactsGrid: document.getElementById('contactsGrid'),
+            contactsContainer: document.getElementById('contactsContainer'),
             emptyState: document.getElementById('emptyState'),
             
             // Mobile Elements
@@ -427,9 +441,11 @@
         function toggleMobileMenu() {
             const isClosed = ui.sidebar.classList.contains('-translate-x-full');
             if (isClosed) {
+                ui.sidebar.style.transform = 'translateX(0)';
                 ui.sidebar.classList.remove('-translate-x-full');
                 ui.mobileOverlay.classList.remove('hidden');
             } else {
+                ui.sidebar.style.transform = 'translateX(-100%)';
                 ui.sidebar.classList.add('-translate-x-full');
                 ui.mobileOverlay.classList.add('hidden');
             }
@@ -552,6 +568,9 @@
             }
 
             ui.emptyState.classList.add('hidden');
+
+            // Sort contacts by name
+            folderContacts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
             folderContacts.forEach(contact => {
                 const card = document.createElement('div');
@@ -676,9 +695,10 @@
 
                 if (parsedContacts.length === 0) throw new Error("No contacts found in file.");
 
-                // 1. Create Folder
+                // 1. Create Folder (remove file extension from name)
+                const folderName = file.name.replace(/\.[^/.]+$/, '');
                 const folderRef = await addDoc(getFoldersRef(currentUser.uid), {
-                    name: file.name,
+                    name: folderName,
                     createdAt: Date.now()
                 });
 
