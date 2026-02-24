@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pear Contacts</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* Batman Aesthetic Theme Variables */
+        :root {
+            --bat-black: #050505;
+            --bat-dark: #0f0f0f;
+            --bat-gray: #1a1a1a;
+            --bat-border: #2a2a2a;
+            --bat-yellow: #facc15;
+            --bat-yellow-hover: #eab308;
+            --bat-text-main: #e5e5e5;
+            --bat-text-muted: #888888;
+        }
+
+        body {
+            background-color: var(--bat-black);
+            color: var(--bat-text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Custom UI Elements */
+        .bat-panel {
+            background-color: var(--bat-dark);
+            border: 1px solid var(--bat-border);
+            border-radius: 4px;
+        }
+
+        .bat-input {
+            background-color: var(--bat-black);
+            border: 1px solid var(--bat-border);
+            color: var(--bat-text-main);
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .bat-input:focus {
+            outline: none;
+            border-color: var(--bat-yellow);
+            box-shadow: 0 0 10px rgba(250, 204, 21, 0.1);
+        }
+
+        .bat-btn {
+            background-color: var(--bat-yellow);
+            color: var(--bat-black);
+            font-weight: 600;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .bat-btn:hover {
+            background-color: var(--bat-yellow-hover);
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.25);
+            transform: translateY(-1px);
+        }
+        
+        .bat-btn-outline {
+            background-color: transparent;
+            color: var(--bat-yellow);
+            border: 1px solid var(--bat-yellow);
+            font-weight: 600;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .bat-btn-outline:hover {
+            background-color: rgba(250, 204, 21, 0.1);
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.15);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bat-black);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--bat-border);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        /* Utilities */
+        .hidden { display: none !important; }
+        .glass-overlay {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex antialiased">
+
+    <!-- LOADING SCREEN -->
+    <div id="loadingView" class="w-full h-full flex flex-col items-center justify-center bg-[#050505]">
+        <img src="Pear.png" alt="Pear Logo" class="h-24 w-auto mb-4 object-contain animate-pulse" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <i class="ph ph-pear text-6xl text-yellow-400 mb-4 animate-pulse hidden"></i>
+        <h1 class="text-3xl font-bold tracking-wider text-white">PEAR</h1>
+    </div>
+
+    <!-- AUTHENTICATION VIEW -->
+    <div id="authView" class="hidden w-full h-full flex flex-col items-center justify-center relative z-10 bat-black">
+        <div class="absolute inset-0 z-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(circle at center, #facc15 0%, transparent 25%);"></div>
+        
+        <div class="bat-panel p-8 w-full max-w-md z-10 shadow-2xl relative">
+            <div class="flex flex-col items-center justify-center mb-8">
+                <img src="Pear.png" alt="Pear Logo" class="h-16 w-auto mb-2 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <i class="ph ph-pear text-5xl text-yellow-400 hidden mb-2"></i>
+                <h1 class="text-3xl font-bold tracking-wider text-white">PEAR</h1>
+            </div>
+
+            <form id="authForm" class="space-y-5">
+                <h2 id="authTitle" class="text-xl font-semibold text-gray-300 mb-4 text-center">Secure Access</h2>
+                
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Email</label>
+                    <div class="relative">
+                        <i class="ph ph-envelope absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        <input type="email" id="email" class="bat-input w-full pl-10 pr-4 py-3" placeholder="bruce@wayne.enterprises" required>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Password</label>
+                    <div class="relative">
+                        <i class="ph ph-lock-key absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        <input type="password" id="password" class="bat-input w-full pl-10 pr-4 py-3" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <div id="authError" class="text-red-500 text-sm hidden text-center bg-red-900/20 py-2 rounded border border-red-900/50"></div>
+
+                <button type="submit" id="authSubmitBtn" class="bat-btn w-full py-3 mt-4 flex justify-center items-center">
+                    <span>Authenticate</span>
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center text-sm text-gray-500">
+                <span id="authToggleText">No clearance?</span> 
+                <button id="authToggleBtn" class="text-yellow-400 hover:text-yellow-300 ml-1 font-semibold transition-colors">Request Access</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP VIEW -->
+    <div id="appView" class="hidden relative w-full h-full flex overflow-hidden">
+        
+        <!-- Mobile Overlay -->
+        <div id="mobileOverlay" class="fixed inset-0 bg-black/80 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+        <!-- SIDEBAR: Folders -->
+        <aside id="sidebar" class="absolute md:relative inset-y-0 left-0 z-40 w-72 bat-panel border-y-0 border-l-0 flex flex-col h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+            <!-- Brand -->
+            <div class="h-16 flex items-center px-6 border-b border-[#2a2a2a] shrink-0">
+                <img src="Pear.png" alt="Pear Logo" class="h-8 w-auto mr-3 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <i class="ph ph-pear text-2xl text-yellow-400 mr-2 hidden"></i>
+                <h1 class="text-xl font-bold tracking-wider text-white">PEAR</h1>
+            </div>
+
+            <!-- Import Action -->
+            <div class="p-4 border-b border-[#2a2a2a] shrink-0">
+                <input type="file" id="fileImport" accept=".csv, .vcf" class="hidden">
+                <button onclick="document.getElementById('fileImport').click()" class="bat-btn-outline w-full py-2 flex items-center justify-center text-sm">
+                    <i class="ph ph-download-simple mr-2 text-lg"></i> Import Data (.csv/.vcf)
+                </button>
+                <div id="importStatus" class="text-xs text-yellow-400 mt-2 text-center hidden">Processing...</div>
+            </div>
+
+            <!-- Folder List -->
+            <div class="flex-1 overflow-y-auto p-3 space-y-1" id="folderList">
+                <!-- Folders injected here via JS -->
+            </div>
+
+            <!-- User Status / Logout -->
+            <div class="p-4 border-t border-[#2a2a2a] shrink-0 flex items-center justify-between">
+                <div class="flex items-center text-sm text-gray-400 overflow-hidden">
+                    <i class="ph ph-user-circle text-2xl mr-2 text-gray-500"></i>
+                    <span id="userEmailDisplay" class="truncate">user@email.com</span>
+                </div>
+                <button id="logoutBtn" class="text-gray-500 hover:text-white transition-colors" title="Logout">
+                    <i class="ph ph-sign-out text-xl"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col h-full bg-[#050505] relative w-full overflow-hidden">
+            
+            <!-- Top Header -->
+            <header class="bat-panel border-y-0 border-x-0 px-4 md:px-8 shrink-0 z-20 shadow-md">
+                <div class="flex flex-col md:flex-row md:items-center justify-between py-3 md:py-0 md:h-16 gap-3 md:gap-0">
+                    <div class="flex items-center">
+                        <button id="mobileMenuBtn" class="md:hidden mr-3 text-gray-400 hover:text-white transition-colors">
+                            <i class="ph ph-list text-2xl"></i>
+                        </button>
+                        <img src="Pear.png" alt="Pear Logo" class="h-6 w-auto mr-2 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <i class="ph ph-pear text-xl text-yellow-400 mr-2 hidden"></i>
+                        <h1 class="text-base font-bold tracking-wider text-white">PEAR</h1>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="relative w-full md:w-72">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" id="searchInput" class="bat-input w-full pl-10 pr-4 py-2 text-sm" placeholder="Search targets...">
+                    </div>
+                </div>
+                
+                <!-- Database Name Bar -->
+                <div class="flex items-center justify-between py-2 border-t border-[#2a2a2a]">
+                    <span id="currentFolderName" class="text-sm text-gray-400">Select a Database</span>
+                    <button id="renameFolderBtn" class="text-gray-500 hover:text-yellow-400 hidden transition-colors" title="Rename Database">
+                        <i class="ph ph-pencil-simple text-lg"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Contacts Grid -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-8 relative">
+                <!-- Empty State -->
+                <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-gray-600 hidden">
+                    <i class="ph ph-folder-open text-6xl mb-4 opacity-50"></i>
+                    <p class="text-lg">No database selected or folder is empty.</p>
+                </div>
+
+                <!-- Contacts Container -->
+                <div id="contactsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 pb-20">
+                    <!-- Cards injected here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    <!-- Edit Contact Modal -->
+    <div id="editContactModal" class="fixed inset-0 glass-overlay z-50 flex justify-center items-center hidden">
+        <div class="bat-panel w-full max-w-md p-6 shadow-2xl relative">
+            <button onclick="closeModal('editContactModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-6 tracking-wide">UPDATE <span class="text-yellow-400">TARGET</span></h3>
+            
+            <form id="editContactForm" class="space-y-4">
+                <input type="hidden" id="editContactId">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase">Name</label>
+                    <input type="text" id="editContactName" class="bat-input w-full px-3 py-2" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase">Email</label>
+                    <input type="email" id="editContactEmail" class="bat-input w-full px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase">Phone</label>
+                    <input type="text" id="editContactPhone" class="bat-input w-full px-3 py-2">
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('editContactModal')" class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancel</button>
+                    <button type="submit" class="bat-btn px-6 py-2 text-sm">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rename Folder Modal -->
+    <div id="renameFolderModal" class="fixed inset-0 glass-overlay z-50 flex justify-center items-center hidden">
+        <div class="bat-panel w-full max-w-sm p-6 shadow-2xl relative">
+            <button onclick="closeModal('renameFolderModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-6 tracking-wide">RENAME <span class="text-yellow-400">DATABASE</span></h3>
+            
+            <form id="renameFolderForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase">Database Designation</label>
+                    <input type="text" id="editFolderName" class="bat-input w-full px-3 py-2" required>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('renameFolderModal')" class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancel</button>
+                    <button type="submit" class="bat-btn px-6 py-2 text-sm">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        // Using the user-provided config precisely.
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYY2GQqS0tCXb7Oxw8AWXhpexq9e8VRUs",
+            authDomain: "aspirehub-32863.firebaseapp.com",
+            projectId: "aspirehub-32863",
+            storageBucket: "aspirehub-32863.appspot.com",
+            messagingSenderId: "686810111182",
+            appId: "1:686810111182:web:4290b4b1b6e64934ec449f",
+            measurementId: "G-KX41R0SSMY",
+            databaseURL: "https://aspirehub-32863-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // Strict Scoped Paths for Security and Sandbox Rules (Mandatory Rule 1)
+        const APP_NAMESPACE = "aspirehub";
+        const getFoldersRef = (uid) => collection(db, 'artifacts', APP_NAMESPACE, 'users', uid, 'folders');
+        const getContactsRef = (uid) => collection(db, 'artifacts', APP_NAMESPACE, 'users', uid, 'contacts');
+        const getFolderDoc = (uid, folderId) => doc(db, 'artifacts', APP_NAMESPACE, 'users', uid, 'folders', folderId);
+        const getContactDoc = (uid, contactId) => doc(db, 'artifacts', APP_NAMESPACE, 'users', uid, 'contacts', contactId);
+
+        // --- Application State ---
+        let currentUser = null;
+        let isLoginMode = true;
+        let foldersData = [];
+        let contactsData = []; // All user contacts fetched to memory (Rule 2)
+        let activeFolderId = null;
+        let currentSearchQuery = '';
+        
+        let unsubFolders = null;
+        let unsubContacts = null;
+
+        // --- DOM Elements ---
+        const ui = {
+            loadingView: document.getElementById('loadingView'),
+            authView: document.getElementById('authView'),
+            appView: document.getElementById('appView'),
+            authForm: document.getElementById('authForm'),
+            authTitle: document.getElementById('authTitle'),
+            authSubmitBtn: document.getElementById('authSubmitBtn'),
+            authToggleText: document.getElementById('authToggleText'),
+            authToggleBtn: document.getElementById('authToggleBtn'),
+            authError: document.getElementById('authError'),
+            userEmailDisplay: document.getElementById('userEmailDisplay'),
+            logoutBtn: document.getElementById('logoutBtn'),
+            fileImport: document.getElementById('fileImport'),
+            importStatus: document.getElementById('importStatus'),
+            folderList: document.getElementById('folderList'),
+            currentFolderName: document.getElementById('currentFolderName'),
+            renameFolderBtn: document.getElementById('renameFolderBtn'),
+            searchInput: document.getElementById('searchInput'),
+            contactsGrid: document.getElementById('contactsGrid'),
+            emptyState: document.getElementById('emptyState'),
+            
+            // Mobile Elements
+            sidebar: document.getElementById('sidebar'),
+            mobileOverlay: document.getElementById('mobileOverlay'),
+            mobileMenuBtn: document.getElementById('mobileMenuBtn'),
+
+            // Modals
+            editContactModal: document.getElementById('editContactModal'),
+            editContactForm: document.getElementById('editContactForm'),
+            renameFolderModal: document.getElementById('renameFolderModal'),
+            renameFolderForm: document.getElementById('renameFolderForm'),
+        };
+
+        // --- Authentication Logic ---
+        onAuthStateChanged(auth, (user) => {
+            ui.loadingView.classList.add('hidden');
+            if (user) {
+                currentUser = user;
+                ui.authView.classList.add('hidden');
+                ui.appView.classList.remove('hidden');
+                ui.userEmailDisplay.textContent = user.email;
+                initDataListeners(user.uid);
+            } else {
+                currentUser = null;
+                ui.authView.classList.remove('hidden');
+                ui.appView.classList.add('hidden');
+                clearData();
+            }
+        });
+
+        ui.authToggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLoginMode = !isLoginMode;
+            ui.authTitle.textContent = isLoginMode ? "Secure Access" : "Establish Identity";
+            ui.authSubmitBtn.innerHTML = isLoginMode ? "<span>Authenticate</span>" : "<span>Initialize</span>";
+            ui.authToggleText.textContent = isLoginMode ? "No clearance?" : "Existing operative?";
+            ui.authToggleBtn.textContent = isLoginMode ? "Request Access" : "Authenticate";
+            ui.authError.classList.add('hidden');
+        });
+
+        ui.authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            ui.authError.classList.add('hidden');
+            ui.authSubmitBtn.disabled = true;
+            ui.authSubmitBtn.classList.add('opacity-50');
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                ui.authError.textContent = error.message.replace('Firebase: ', '');
+                ui.authError.classList.remove('hidden');
+            } finally {
+                ui.authSubmitBtn.disabled = false;
+                ui.authSubmitBtn.classList.remove('opacity-50');
+            }
+        });
+
+        ui.logoutBtn.addEventListener('click', () => signOut(auth));
+
+        // --- Mobile Menu Logic ---
+        function toggleMobileMenu() {
+            const isClosed = ui.sidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                ui.sidebar.classList.remove('-translate-x-full');
+                ui.mobileOverlay.classList.remove('hidden');
+            } else {
+                ui.sidebar.classList.add('-translate-x-full');
+                ui.mobileOverlay.classList.add('hidden');
+            }
+        }
+
+        ui.mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+        ui.mobileOverlay.addEventListener('click', toggleMobileMenu);
+
+        // --- Data Layer (Firestore Listeners) ---
+        function initDataListeners(uid) {
+            // Fetch Folders (Simple query - Rule 2)
+            unsubFolders = onSnapshot(getFoldersRef(uid), (snapshot) => {
+                foldersData = [];
+                snapshot.forEach(doc => {
+                    foldersData.push({ id: doc.id, ...doc.data() });
+                });
+                foldersData.sort((a, b) => b.createdAt - a.createdAt); // In-memory sort
+                renderFolders();
+                
+                // Update active folder name if renamed
+                if (activeFolderId) {
+                    const activeFolder = foldersData.find(f => f.id === activeFolderId);
+                    if (activeFolder) {
+                        ui.currentFolderName.textContent = activeFolder.name;
+                    } else {
+                        selectFolder(null); // Folder deleted
+                    }
+                }
+            }, (error) => console.error("Folders listen error:", error));
+
+            // Fetch All Contacts for User (Simple query - Rule 2)
+            unsubContacts = onSnapshot(getContactsRef(uid), (snapshot) => {
+                contactsData = [];
+                snapshot.forEach(doc => {
+                    contactsData.push({ id: doc.id, ...doc.data() });
+                });
+                renderContacts();
+            }, (error) => console.error("Contacts listen error:", error));
+        }
+
+        function clearData() {
+            if (unsubFolders) unsubFolders();
+            if (unsubContacts) unsubContacts();
+            foldersData = [];
+            contactsData = [];
+            activeFolderId = null;
+            ui.folderList.innerHTML = '';
+            ui.contactsGrid.innerHTML = '';
+            ui.currentFolderName.textContent = 'Select a Database';
+            ui.renameFolderBtn.classList.add('hidden');
+        }
+
+        // --- UI Rendering ---
+        function renderFolders() {
+            ui.folderList.innerHTML = '';
+            if (foldersData.length === 0) {
+                ui.folderList.innerHTML = `<div class="text-xs text-gray-600 p-2 text-center">No databases found.</div>`;
+                return;
+            }
+
+            foldersData.forEach(folder => {
+                const isActive = folder.id === activeFolderId;
+                const div = document.createElement('div');
+                div.className = `flex items-center justify-between p-3 rounded cursor-pointer transition-colors ${isActive ? 'bg-[#1a1a1a] border-l-2 border-yellow-400' : 'hover:bg-[#111]'}`;
+                div.innerHTML = `
+                    <div class="flex items-center overflow-hidden flex-1" onclick="window.selectFolder('${folder.id}')">
+                        <i class="ph ph-folder text-lg ${isActive ? 'text-yellow-400' : 'text-gray-500'} mr-3 shrink-0"></i>
+                        <span class="text-sm truncate ${isActive ? 'text-white font-medium' : 'text-gray-400'}">${folder.name}</span>
+                    </div>
+                `;
+                ui.folderList.appendChild(div);
+            });
+        }
+
+        window.selectFolder = (folderId) => {
+            activeFolderId = folderId;
+            renderFolders();
+            
+            if (folderId) {
+                const folder = foldersData.find(f => f.id === folderId);
+                ui.currentFolderName.textContent = folder ? folder.name : 'Unknown Database';
+                ui.renameFolderBtn.classList.remove('hidden');
+            } else {
+                ui.currentFolderName.textContent = 'Select a Database';
+                ui.renameFolderBtn.classList.add('hidden');
+            }
+            renderContacts();
+
+            // Auto-close sidebar on mobile after selection
+            if (window.innerWidth < 768 && !ui.sidebar.classList.contains('-translate-x-full')) {
+                toggleMobileMenu();
+            }
+        };
+
+        ui.searchInput.addEventListener('input', (e) => {
+            currentSearchQuery = e.target.value.toLowerCase();
+            renderContacts();
+        });
+
+        function renderContacts() {
+            ui.contactsGrid.innerHTML = '';
+            
+            // In-memory filtering (Rule 2 adherence)
+            let folderContacts = activeFolderId 
+                ? contactsData.filter(c => c.folderId === activeFolderId)
+                : contactsData;
+            
+            if (currentSearchQuery) {
+                folderContacts = folderContacts.filter(c => 
+                    (c.name && c.name.toLowerCase().includes(currentSearchQuery)) ||
+                    (c.email && c.email.toLowerCase().includes(currentSearchQuery)) ||
+                    (c.phone && c.phone.toLowerCase().includes(currentSearchQuery))
+                );
+            }
+
+            if (folderContacts.length === 0) {
+                ui.emptyState.classList.remove('hidden');
+                ui.emptyState.querySelector('p').textContent = currentSearchQuery ? "No targets match query." : (activeFolderId ? "Database is empty." : "No database selected.");
+                return;
+            }
+
+            ui.emptyState.classList.add('hidden');
+
+            folderContacts.forEach(contact => {
+                const card = document.createElement('div');
+                card.className = "bat-panel p-3 group hover:border-yellow-400/50 transition-colors flex flex-col relative";
+                
+                const photoHtml = contact.photo 
+                    ? `<img src="${contact.photo}" alt="${contact.name}" class="w-8 h-8 rounded object-cover mr-2 shrink-0 border border-[#2a2a2a]">`
+                    : `<div class="w-8 h-8 rounded bg-[#1a1a1a] flex items-center justify-center text-yellow-400 font-bold text-sm mr-2 shrink-0 border border-[#2a2a2a]">
+                        ${contact.name ? contact.name.charAt(0).toUpperCase() : '?'}
+                       </div>`;
+
+                // Card Edit Button (Hidden by default, shown on group hover)
+                card.innerHTML = `
+                    <button onclick="window.openEditContact('${contact.id}')" class="absolute top-2 right-2 text-gray-600 hover:text-yellow-400 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="ph ph-pencil-simple text-base"></i>
+                    </button>
+                    <div class="flex items-center mb-2">
+                        ${photoHtml}
+                        <div class="overflow-hidden">
+                            <h3 class="text-white font-medium truncate text-xs">${contact.name || 'Unknown'}</h3>
+                        </div>
+                    </div>
+                    <div class="space-y-1 mt-auto text-xs">
+                        <div class="flex items-center text-gray-400">
+                            <i class="ph ph-envelope-simple mr-1 shrink-0 text-sm"></i>
+                            <span class="truncate">${contact.email || 'N/A'}</span>
+                        </div>
+                        <div class="flex items-center text-gray-400">
+                            <i class="ph ph-phone mr-1 shrink-0 text-sm"></i>
+                            <span class="truncate">${contact.phone || 'N/A'}</span>
+                        </div>
+                    </div>
+                `;
+                ui.contactsGrid.appendChild(card);
+            });
+        }
+
+        // --- Editing Logic & Modals ---
+        window.closeModal = (id) => {
+            document.getElementById(id).classList.add('hidden');
+        };
+
+        // Edit Folder
+        ui.renameFolderBtn.addEventListener('click', () => {
+            if (!activeFolderId) return;
+            const folder = foldersData.find(f => f.id === activeFolderId);
+            if (folder) {
+                document.getElementById('editFolderName').value = folder.name;
+                ui.renameFolderModal.classList.remove('hidden');
+            }
+        });
+
+        ui.renameFolderForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!activeFolderId || !currentUser) return;
+            const newName = document.getElementById('editFolderName').value.trim();
+            if (!newName) return;
+
+            try {
+                await updateDoc(getFolderDoc(currentUser.uid, activeFolderId), { name: newName });
+                window.closeModal('renameFolderModal');
+            } catch (error) {
+                console.error("Error renaming folder:", error);
+                alert("Failed to rename database.");
+            }
+        });
+
+        // Edit Contact
+        window.openEditContact = (contactId) => {
+            const contact = contactsData.find(c => c.id === contactId);
+            if (!contact) return;
+            
+            document.getElementById('editContactId').value = contact.id;
+            document.getElementById('editContactName').value = contact.name || '';
+            document.getElementById('editContactEmail').value = contact.email || '';
+            document.getElementById('editContactPhone').value = contact.phone || '';
+            
+            ui.editContactModal.classList.remove('hidden');
+        };
+
+        ui.editContactForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+            
+            const id = document.getElementById('editContactId').value;
+            const updates = {
+                name: document.getElementById('editContactName').value.trim(),
+                email: document.getElementById('editContactEmail').value.trim(),
+                phone: document.getElementById('editContactPhone').value.trim()
+            };
+
+            try {
+                await updateDoc(getContactDoc(currentUser.uid, id), updates);
+                window.closeModal('editContactModal');
+            } catch (error) {
+                console.error("Error updating contact:", error);
+                alert("Failed to update target.");
+            }
+        });
+
+        // --- File Import & Parsing Logic ---
+        ui.fileImport.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !currentUser) return;
+
+            ui.importStatus.textContent = "Processing...";
+            ui.importStatus.classList.remove('hidden');
+            ui.fileImport.disabled = true;
+
+            try {
+                const text = await readFileAsText(file);
+                let parsedContacts = [];
+                const extension = file.name.split('.').pop().toLowerCase();
+
+                if (extension === 'csv') {
+                    parsedContacts = parseCSV(text);
+                } else if (extension === 'vcf' || extension === 'vcard') {
+                    parsedContacts = parseVCF(text);
+                } else {
+                    throw new Error("Unsupported format. Use .csv or .vcf");
+                }
+
+                if (parsedContacts.length === 0) throw new Error("No contacts found in file.");
+
+                // 1. Create Folder
+                const folderRef = await addDoc(getFoldersRef(currentUser.uid), {
+                    name: file.name,
+                    createdAt: Date.now()
+                });
+
+                // 2. Batch Create Contacts (Firestore batch limit is 500, chunking just in case)
+                const chunks = [];
+                const chunkSize = 450;
+                for (let i = 0; i < parsedContacts.length; i += chunkSize) {
+                    chunks.push(parsedContacts.slice(i, i + chunkSize));
+                }
+
+                for (const chunk of chunks) {
+                    const batch = writeBatch(db);
+                    chunk.forEach(contact => {
+                        const newContactRef = doc(getContactsRef(currentUser.uid));
+                        batch.set(newContactRef, {
+                            folderId: folderRef.id,
+                            name: contact.name,
+                            email: contact.email,
+                            phone: contact.phone,
+                            photo: contact.photo || null,
+                            createdAt: Date.now()
+                        });
+                    });
+                    await batch.commit();
+                }
+
+                ui.importStatus.textContent = "Import complete.";
+                setTimeout(() => ui.importStatus.classList.add('hidden'), 3000);
+                window.selectFolder(folderRef.id);
+
+            } catch (error) {
+                console.error("Import error:", error);
+                ui.importStatus.textContent = "Error: " + error.message;
+                ui.importStatus.classList.remove('text-yellow-400');
+                ui.importStatus.classList.add('text-red-500');
+                setTimeout(() => {
+                    ui.importStatus.classList.add('hidden');
+                    ui.importStatus.classList.add('text-yellow-400');
+                    ui.importStatus.classList.remove('text-red-500');
+                }, 4000);
+            } finally {
+                ui.fileImport.value = ''; // Reset
+                ui.fileImport.disabled = false;
+            }
+        });
+
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsText(file);
+            });
+        }
+
+        function parseCSV(text) {
+            const contacts = [];
+            // Basic CSV regex to handle commas inside quotes
+            const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+            if (lines.length < 2) return contacts;
+
+            const headerRow = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v ? v.replace(/^"|"$/g, '').trim() : '');
+                if (values.length === 0 || (values.length === 1 && values[0] === '')) continue;
+
+                const contact = { name: '', email: '', phone: '', photo: '' };
+                
+                headerRow.forEach((header, index) => {
+                    const val = values[index] || '';
+                    if (header.includes('name') || header.includes('first')) contact.name = val;
+                    if (header.includes('email')) contact.email = val;
+                    if (header.includes('phone') || header.includes('mobile')) contact.phone = val;
+                    if (header.includes('photo') || header.includes('image') || header.includes('picture')) contact.photo = val;
+                });
+                
+                // Fallback if no exact headers found but data exists
+                if (!contact.name && values[0]) contact.name = values[0]; 
+                
+                contacts.push(contact);
+            }
+            return contacts;
+        }
+
+        function parseVCF(text) {
+            const contacts = [];
+            // Unfold lines that VCF wraps with a leading space or tab
+            const unfoldedText = text.replace(/\r?\n[ \t]/g, '');
+            const cards = unfoldedText.split(/BEGIN:VCARD/i);
+            
+            for (const card of cards) {
+                if (!card.trim()) continue;
+                
+                const contact = { name: '', email: '', phone: '', photo: '' };
+                const lines = card.split(/\r?\n/);
+                
+                lines.forEach(line => {
+                    const upperLine = line.toUpperCase();
+                    if (upperLine.startsWith('FN:') || upperLine.startsWith('FN;')) {
+                        contact.name = line.substring(line.indexOf(':') + 1).trim();
+                    } else if (upperLine.startsWith('EMAIL:') || upperLine.startsWith('EMAIL;')) {
+                        contact.email = line.substring(line.indexOf(':') + 1).trim();
+                    } else if (upperLine.startsWith('TEL:') || upperLine.startsWith('TEL;')) {
+                        contact.phone = line.substring(line.indexOf(':') + 1).trim();
+                    } else if (upperLine.startsWith('PHOTO')) {
+                        const colonIndex = line.indexOf(':');
+                        if (colonIndex !== -1) {
+                            const meta = line.substring(0, colonIndex).toUpperCase();
+                            const val = line.substring(colonIndex + 1).trim();
+                            if (meta.includes('ENCODING=B') || meta.includes('BASE64')) {
+                                let type = 'jpeg';
+                                if (meta.includes('TYPE=PNG')) type = 'png';
+                                else if (meta.includes('TYPE=GIF')) type = 'gif';
+                                contact.photo = `data:image/${type};base64,${val}`;
+                            } else if (meta.includes('URI') || val.startsWith('http')) {
+                                contact.photo = val;
+                            }
+                        }
+                    }
+                });
+                
+                if (contact.name || contact.email || contact.phone) {
+                    if (!contact.name) contact.name = "Unknown";
+                    contacts.push(contact);
+                }
+            }
+            return contacts;
+        }
+
+    </script>
+</body>
+</html>
