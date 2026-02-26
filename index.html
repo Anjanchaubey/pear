@@ -186,9 +186,9 @@
 
             <!-- Import Action -->
             <div class="p-4 border-b border-[#2a2a2a] shrink-0">
-                <input type="file" id="fileImport" accept=".csv, .vcf" class="hidden">
+                <input type="file" id="fileImport" accept=".csv, .vcf, .vcard" class="hidden">
                 <button onclick="document.getElementById('fileImport').click()" class="bat-btn-outline w-full py-2 flex items-center justify-center text-sm">
-                    <i class="ph ph-download-simple mr-2 text-lg"></i> Import Data (.csv/.vcf)
+                    <i class="ph ph-download-simple mr-2 text-lg"></i> Import Data (.csv/.vcf/.vcard)
                 </button>
                 <div id="importStatus" class="text-xs text-yellow-400 mt-2 text-center hidden">Processing...</div>
             </div>
@@ -196,6 +196,17 @@
             <!-- Folder List -->
             <div class="flex-1 overflow-y-auto p-3 space-y-1" id="folderList">
                 <!-- Folders injected here via JS -->
+            </div>
+
+            <!-- Duplicates Section -->
+            <div id="duplicatesSection" class="hidden p-4 border-t border-[#2a2a2a] shrink-0">
+                <button id="duplicatesBtn" class="w-full flex items-center justify-between text-sm text-yellow-400 hover:text-yellow-300 transition-colors">
+                    <span class="flex items-center">
+                        <i class="ph ph-warning text-lg mr-2"></i>
+                        <span id="duplicatesCount">0 Duplicates</span>
+                    </span>
+                    <i class="ph ph-caret-right text-lg"></i>
+                </button>
             </div>
 
             <!-- User Status / Logout -->
@@ -309,6 +320,24 @@
         </div>
     </div>
 
+    <!-- Merge Duplicates Modal -->
+    <div id="mergeDuplicatesModal" class="fixed inset-0 glass-overlay z-50 flex justify-center items-center hidden">
+        <div class="bat-panel w-full max-w-2xl p-6 shadow-2xl relative max-h-[80vh] overflow-y-auto">
+            <button onclick="closeModal('mergeDuplicatesModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-4 tracking-wide">MERGE <span class="text-yellow-400">DUPLICATES</span></h3>
+            
+            <button onclick="window.mergeAllDuplicates()" class="bat-btn w-full py-2 text-sm mb-6">
+                <i class="ph ph-arrows-merge mr-2"></i>Merge All Groups
+            </button>
+            
+            <div id="duplicatesList" class="space-y-4">
+                <!-- Duplicate groups injected here -->
+            </div>
+        </div>
+    </div>
+
     <!-- Application Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -372,6 +401,9 @@
             contactsGrid: document.getElementById('contactsGrid'),
             contactsContainer: document.getElementById('contactsContainer'),
             emptyState: document.getElementById('emptyState'),
+            duplicatesSection: document.getElementById('duplicatesSection'),
+            duplicatesBtn: document.getElementById('duplicatesBtn'),
+            duplicatesCount: document.getElementById('duplicatesCount'),
             
             // Mobile Elements
             sidebar: document.getElementById('sidebar'),
@@ -383,6 +415,8 @@
             editContactForm: document.getElementById('editContactForm'),
             renameFolderModal: document.getElementById('renameFolderModal'),
             renameFolderForm: document.getElementById('renameFolderForm'),
+            mergeDuplicatesModal: document.getElementById('mergeDuplicatesModal'),
+            duplicatesList: document.getElementById('duplicatesList'),
         };
 
         // --- Authentication Logic ---
@@ -483,8 +517,111 @@
                     contactsData.push({ id: doc.id, ...doc.data() });
                 });
                 renderContacts();
+                detectDuplicates();
             }, (error) => console.error("Contacts listen error:", error));
         }
+
+        // Detect duplicates
+        function detectDuplicates() {
+            const duplicates = [];
+            const seen = new Map();
+
+            contactsData.forEach(contact => {
+                const name = (contact.name || '').toLowerCase().trim();
+                const phone = (contact.phone || '').replace(/\D/g, '');
+                
+                if (name || phone) {
+                    const key = `${name}|${phone}`;
+                    if (seen.has(key)) {
+                        const existing = seen.get(key);
+                        const group = duplicates.find(g => g.some(c => c.id === existing.id));
+                        if (group) {
+                            group.push(contact);
+                        } else {
+                            duplicates.push([existing, contact]);
+                        }
+                    } else {
+                        seen.set(key, contact);
+                    }
+                }
+            });
+
+            if (duplicates.length > 0) {
+                ui.duplicatesSection.classList.remove('hidden');
+                ui.duplicatesCount.textContent = `${duplicates.length} Duplicate${duplicates.length > 1 ? 's' : ''}`;
+                ui.duplicatesBtn.onclick = () => showDuplicates(duplicates);
+            } else {
+                ui.duplicatesSection.classList.add('hidden');
+            }
+        }
+
+        function showDuplicates(duplicates) {
+            ui.duplicatesList.innerHTML = '';
+            duplicates.forEach((group, idx) => {
+                const div = document.createElement('div');
+                div.className = 'bat-panel p-4';
+                div.innerHTML = `
+                    <h4 class="text-white font-medium mb-3">Duplicate Group ${idx + 1}</h4>
+                    <div class="space-y-2 mb-3">
+                        ${group.map(c => `
+                            <div class="flex items-center justify-between p-2 bg-[#1a1a1a] rounded">
+                                <div class="text-sm">
+                                    <div class="text-white">${c.name || 'Unknown'}</div>
+                                    <div class="text-gray-400 text-xs">${c.phone || 'N/A'}</div>
+                                </div>
+                                <span class="text-xs text-gray-500">${foldersData.find(f => f.id === c.folderId)?.name || 'Unknown'}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button onclick="window.mergeDuplicateGroup(${idx})" class="bat-btn w-full py-2 text-sm">Merge All</button>
+                `;
+                ui.duplicatesList.appendChild(div);
+            });
+            ui.mergeDuplicatesModal.classList.remove('hidden');
+            window.currentDuplicates = duplicates;
+        }
+
+        window.mergeDuplicateGroup = async (groupIdx) => {
+            if (!currentUser || !window.currentDuplicates) return;
+            const group = window.currentDuplicates[groupIdx];
+            if (!group || group.length < 2) return;
+
+            try {
+                const [primary, ...others] = group;
+                const batch = writeBatch(db);
+                others.forEach(contact => {
+                    batch.delete(getContactDoc(currentUser.uid, contact.id));
+                });
+                await batch.commit();
+                alert('Duplicates merged successfully!');
+                window.closeModal('mergeDuplicatesModal');
+            } catch (error) {
+                console.error('Merge error:', error);
+                alert('Failed to merge duplicates.');
+            }
+        };
+
+        window.mergeAllDuplicates = async () => {
+            if (!currentUser || !window.currentDuplicates || window.currentDuplicates.length === 0) return;
+            
+            if (!confirm(`Merge all ${window.currentDuplicates.length} duplicate groups?`)) return;
+
+            try {
+                const batch = writeBatch(db);
+                window.currentDuplicates.forEach(group => {
+                    const [primary, ...others] = group;
+                    others.forEach(contact => {
+                        batch.delete(getContactDoc(currentUser.uid, contact.id));
+                    });
+                });
+                await batch.commit();
+                alert('All duplicates merged successfully!');
+                window.closeModal('mergeDuplicatesModal');
+            } catch (error) {
+                console.error('Merge all error:', error);
+                alert('Failed to merge all duplicates.');
+            }
+        };
 
         function clearData() {
             if (unsubFolders) unsubFolders();
