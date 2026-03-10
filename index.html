@@ -8,14 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
-        /* Custom Font */
-        @font-face {
-            font-family: 'CustomFont';
-            src: url('font.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
-
         /* Batman Aesthetic Theme Variables */
         :root {
             --bat-black: #050505;
@@ -31,7 +23,7 @@
         body {
             background-color: var(--bat-black);
             color: var(--bat-text-main);
-            font-family: 'CustomFont', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             overflow: hidden;
         }
@@ -604,61 +596,16 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
+        // Logout on every page load
+        auth.signOut();
+        
         // Access code protection (basic deterrent - NOT secure against determined users)
-        let ACCESS_CODE = localStorage.getItem('pear_pin') || '123456'; // Default PIN
-        let accessGranted = sessionStorage.getItem('pear_access') === 'granted';
+        let ACCESS_CODE = localStorage.getItem('pear_pin') || '221353'; // Default PIN
+        let accessGranted = false; // Always ask for PIN on refresh
         
-        // Disable right-click and common shortcuts (basic deterrent only)
-        document.addEventListener('contextmenu', e => e.preventDefault());
-        document.addEventListener('keydown', e => {
-            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || 
-                (e.ctrlKey && e.shiftKey && e.key === 'J') || (e.ctrlKey && e.key === 'U')) {
-                e.preventDefault();
-                return false;
-            }
-        });
-        
-        // Check access on load
-        if (!accessGranted) {
-            document.getElementById('loadingView').classList.add('hidden');
-            document.getElementById('accessCodeView').classList.remove('hidden');
-        }
-        
-        // Numpad functions
-        window.addPinDigit = (digit) => {
-            const input = document.getElementById('accessCode');
-            if (input.value.length < 6) {
-                input.value += digit;
-            }
-        };
-
-        window.clearPin = () => {
-            document.getElementById('accessCode').value = '';
-        };
-
-        window.backspacePin = () => {
-            const input = document.getElementById('accessCode');
-            input.value = input.value.slice(0, -1);
-        };
-
-        // Access code form handler
-        document.getElementById('accessCodeForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const code = document.getElementById('accessCode').value;
-            const errorDiv = document.getElementById('accessError');
-            
-            if (code === ACCESS_CODE) {
-                sessionStorage.setItem('pear_access', 'granted');
-                accessGranted = true;
-                document.getElementById('accessCodeView').classList.add('hidden');
-                document.getElementById('loadingView').classList.remove('hidden');
-            } else {
-                errorDiv.textContent = 'Invalid access code';
-                errorDiv.classList.remove('hidden');
-                document.getElementById('accessCode').value = '';
-                setTimeout(() => errorDiv.classList.add('hidden'), 3000);
-            }
-        });
+        // Always show PIN screen on load
+        document.getElementById('loadingView').classList.add('hidden');
+        document.getElementById('accessCodeView').classList.remove('hidden');
         
         // Strict Scoped Paths for Security and Sandbox Rules (Mandatory Rule 1)
         const APP_NAMESPACE = "aspirehub";
@@ -735,6 +682,7 @@
             changePinBtn: document.getElementById('changePinBtn'),
             changePinModal: document.getElementById('changePinModal'),
             changePinForm: document.getElementById('changePinForm'),
+            accessCodeView: document.getElementById('accessCodeView'),
         };
 
         let selectedContacts = new Set();
@@ -747,18 +695,58 @@
         let showFavoritesOnly = false;
         let showRecentOnly = false;
 
+        // Numpad functions
+        window.addPinDigit = (digit) => {
+            const input = document.getElementById('accessCode');
+            if (input.value.length < 6) {
+                input.value += digit;
+            }
+        };
+
+        window.clearPin = () => {
+            document.getElementById('accessCode').value = '';
+        };
+
+        window.backspacePin = () => {
+            const input = document.getElementById('accessCode');
+            input.value = input.value.slice(0, -1);
+        };
+
+        // Access code form handler
+        document.getElementById('accessCodeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const code = document.getElementById('accessCode').value;
+            const errorDiv = document.getElementById('accessError');
+            
+            if (code === ACCESS_CODE) {
+                accessGranted = true;
+                document.getElementById('accessCodeView').classList.add('hidden');
+                ui.authView.classList.remove('hidden');
+            } else {
+                errorDiv.textContent = 'Invalid access code';
+                errorDiv.classList.remove('hidden');
+                document.getElementById('accessCode').value = '';
+                setTimeout(() => errorDiv.classList.add('hidden'), 3000);
+            }
+        });
+
         // --- Authentication Logic ---
         onAuthStateChanged(auth, (user) => {
+            console.log('Auth state changed:', user ? user.email : 'no user', 'accessGranted:', accessGranted);
             if (!accessGranted) return; // Block if access code not entered
             ui.loadingView.classList.add('hidden');
             if (user) {
                 currentUser = user;
+                ui.accessCodeView.classList.add('hidden');
                 ui.authView.classList.add('hidden');
                 ui.appView.classList.remove('hidden');
                 ui.userEmailDisplay.textContent = user.email;
-                initDataListeners(user.uid);
+                if (!unsubFolders && !unsubContacts) {
+                    initDataListeners(user.uid);
+                }
             } else {
                 currentUser = null;
+                ui.accessCodeView.classList.add('hidden');
                 ui.authView.classList.remove('hidden');
                 ui.appView.classList.add('hidden');
                 clearData();
@@ -798,7 +786,10 @@
             }
         });
 
-        ui.logoutBtn.addEventListener('click', () => signOut(auth));
+        ui.logoutBtn.addEventListener('click', async () => {
+            await signOut(auth);
+            location.reload(); // Reload to show PIN screen again
+        });
 
         // Change PIN functionality
         ui.changePinBtn.addEventListener('click', () => {
