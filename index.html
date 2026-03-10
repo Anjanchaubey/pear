@@ -8,6 +8,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
+        /* Custom Font */
+        @font-face {
+            font-family: 'CustomFont';
+            src: url('font.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
         /* Batman Aesthetic Theme Variables */
         :root {
             --bat-black: #050505;
@@ -23,7 +31,7 @@
         body {
             background-color: var(--bat-black);
             color: var(--bat-text-main);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'CustomFont', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             overflow: hidden;
         }
@@ -102,6 +110,26 @@
             backdrop-filter: blur(4px);
         }
 
+        /* Selection styles */
+        .contact-card.selected {
+            border-color: var(--bat-yellow) !important;
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.3);
+            background-color: rgba(250, 204, 21, 0.05);
+        }
+        
+        .contact-card {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .selection-box {
+            position: fixed;
+            border: 2px dashed var(--bat-yellow);
+            background: rgba(250, 204, 21, 0.1);
+            pointer-events: none;
+            z-index: 1000;
+        }
+
         /* Sidebar Slide Effects */
         #sidebar {
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -123,6 +151,52 @@
         <img src="Pear.png" alt="Pear Logo" class="h-24 w-auto mb-4 object-contain animate-pulse" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
         <i class="ph ph-pear text-6xl text-yellow-400 mb-4 animate-pulse hidden"></i>
         <h1 class="text-3xl font-bold tracking-wider text-white">PEAR</h1>
+    </div>
+
+    <!-- ACCESS CODE VIEW -->
+    <div id="accessCodeView" class="hidden w-full h-full flex flex-col items-center justify-center relative z-10 bg-[#050505]">
+        <div class="absolute inset-0 z-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(circle at center, #facc15 0%, transparent 25%);"></div>
+        
+        <div class="bat-panel p-8 w-full max-w-md z-10 shadow-2xl relative">
+            <div class="flex flex-col items-center justify-center mb-8">
+                <img src="Pear.png" alt="Pear Logo" class="h-16 w-auto mb-2 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <i class="ph ph-pear text-5xl text-yellow-400 hidden mb-2"></i>
+                <h1 class="text-3xl font-bold tracking-wider text-white">PEAR</h1>
+                <p class="text-sm text-gray-500 mt-2">Restricted Access</p>
+            </div>
+
+            <form id="accessCodeForm" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Enter 6-Digit Code</label>
+                    <div class="relative">
+                        <i class="ph ph-lock-key absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        <input type="password" id="accessCode" class="bat-input w-full pl-10 pr-4 py-3 text-center text-2xl tracking-widest" placeholder="••••••" maxlength="6" pattern="[0-9]{6}" required autocomplete="off" readonly>
+                    </div>
+                </div>
+
+                <!-- Mobile Numpad -->
+                <div class="grid grid-cols-3 gap-2 mt-4">
+                    <button type="button" onclick="addPinDigit('1')" class="bat-btn-outline py-4 text-xl font-bold">1</button>
+                    <button type="button" onclick="addPinDigit('2')" class="bat-btn-outline py-4 text-xl font-bold">2</button>
+                    <button type="button" onclick="addPinDigit('3')" class="bat-btn-outline py-4 text-xl font-bold">3</button>
+                    <button type="button" onclick="addPinDigit('4')" class="bat-btn-outline py-4 text-xl font-bold">4</button>
+                    <button type="button" onclick="addPinDigit('5')" class="bat-btn-outline py-4 text-xl font-bold">5</button>
+                    <button type="button" onclick="addPinDigit('6')" class="bat-btn-outline py-4 text-xl font-bold">6</button>
+                    <button type="button" onclick="addPinDigit('7')" class="bat-btn-outline py-4 text-xl font-bold">7</button>
+                    <button type="button" onclick="addPinDigit('8')" class="bat-btn-outline py-4 text-xl font-bold">8</button>
+                    <button type="button" onclick="addPinDigit('9')" class="bat-btn-outline py-4 text-xl font-bold">9</button>
+                    <button type="button" onclick="clearPin()" class="bat-btn-outline py-4 text-sm font-bold">Clear</button>
+                    <button type="button" onclick="addPinDigit('0')" class="bat-btn-outline py-4 text-xl font-bold">0</button>
+                    <button type="button" onclick="backspacePin()" class="bat-btn-outline py-4 text-sm font-bold">⌫</button>
+                </div>
+
+                <div id="accessError" class="text-red-500 text-sm hidden text-center bg-red-900/20 py-2 rounded border border-red-900/50"></div>
+
+                <button type="submit" class="bat-btn w-full py-3 mt-4 flex justify-center items-center">
+                    <span>Unlock</span>
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- AUTHENTICATION VIEW -->
@@ -184,11 +258,17 @@
                 <h1 class="text-xl font-bold tracking-wider text-white">PEAR</h1>
             </div>
 
-            <!-- Import Action -->
-            <div class="p-4 border-b border-[#2a2a2a] shrink-0">
+            <!-- Import/Export Actions -->
+            <div class="p-4 border-b border-[#2a2a2a] shrink-0 space-y-2">
                 <input type="file" id="fileImport" accept=".csv, .vcf, .vcard" class="hidden">
                 <button onclick="document.getElementById('fileImport').click()" class="bat-btn-outline w-full py-2 flex items-center justify-center text-sm">
-                    <i class="ph ph-download-simple mr-2 text-lg"></i> Import Data (.csv/.vcf/.vcard)
+                    <i class="ph ph-download-simple mr-2 text-lg"></i> Import
+                </button>
+                <button id="exportBtn" class="bat-btn-outline w-full py-2 flex items-center justify-center text-sm">
+                    <i class="ph ph-upload-simple mr-2 text-lg"></i> Export
+                </button>
+                <button id="backupBtn" class="bat-btn-outline w-full py-2 flex items-center justify-center text-sm">
+                    <i class="ph ph-database mr-2 text-lg"></i> Backup All
                 </button>
                 <div id="importStatus" class="text-xs text-yellow-400 mt-2 text-center hidden">Processing...</div>
             </div>
@@ -210,14 +290,23 @@
             </div>
 
             <!-- User Status / Logout -->
-            <div class="p-4 border-t border-[#2a2a2a] shrink-0 flex items-center justify-between">
-                <div class="flex items-center text-sm text-gray-400 overflow-hidden">
-                    <i class="ph ph-user-circle text-2xl mr-2 text-gray-500"></i>
-                    <span id="userEmailDisplay" class="truncate">user@email.com</span>
+            <div class="p-4 border-t border-[#2a2a2a] shrink-0">
+                <div class="flex items-center justify-between mb-3 pb-3 border-b border-[#2a2a2a]">
+                    <span class="text-xs text-gray-500 uppercase">Total Contacts</span>
+                    <span id="totalContactsCount" class="text-yellow-400 font-bold text-sm">0</span>
                 </div>
-                <button id="logoutBtn" class="text-gray-500 hover:text-white transition-colors" title="Logout">
-                    <i class="ph ph-sign-out text-xl"></i>
+                <button id="changePinBtn" class="w-full mb-3 py-2 text-sm text-gray-400 hover:text-yellow-400 transition-colors flex items-center justify-center">
+                    <i class="ph ph-lock-key mr-2"></i>Change PIN
                 </button>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center text-sm text-gray-400 overflow-hidden">
+                        <i class="ph ph-user-circle text-2xl mr-2 text-gray-500"></i>
+                        <span id="userEmailDisplay" class="truncate">user@email.com</span>
+                    </div>
+                    <button id="logoutBtn" class="text-gray-500 hover:text-white transition-colors" title="Logout">
+                        <i class="ph ph-sign-out text-xl"></i>
+                    </button>
+                </div>
             </div>
         </aside>
 
@@ -237,18 +326,51 @@
                     </div>
 
                     <!-- Search -->
-                    <div class="relative w-full md:w-72">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
-                        <input type="text" id="searchInput" class="bat-input w-full pl-10 pr-4 py-2 text-sm" placeholder="Search targets...">
+                    <div class="flex items-center gap-2">
+                        <div class="relative w-full md:w-72">
+                            <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                            <input type="text" id="searchInput" class="bat-input w-full pl-10 pr-4 py-2 text-sm" placeholder="Search targets...">
+                        </div>
+                        <button id="selectModeBtn" class="bat-btn-outline px-4 py-2 text-sm whitespace-nowrap">
+                            <i class="ph ph-check-square mr-1"></i>Select
+                        </button>
+                        <button id="doneSelectBtn" class="bat-btn px-4 py-2 text-sm whitespace-nowrap hidden">
+                            <i class="ph ph-check mr-1"></i>Done
+                        </button>
+                        <button id="cancelSelectBtn" class="bat-btn-outline px-4 py-2 text-sm whitespace-nowrap hidden">
+                            <i class="ph ph-x mr-1"></i>Cancel
+                        </button>
+                        <button id="sortBtn" class="bat-btn-outline px-4 py-2 text-sm">
+                            <i class="ph ph-sort-ascending"></i>
+                        </button>
+                        <button id="filterBtn" class="bat-btn-outline px-4 py-2 text-sm">
+                            <i class="ph ph-funnel"></i>
+                        </button>
                     </div>
                 </div>
                 
                 <!-- Database Name Bar -->
                 <div class="flex items-center justify-between py-2 border-t border-[#2a2a2a]">
-                    <span id="currentFolderName" class="text-sm text-gray-400">Select a Database</span>
-                    <button id="renameFolderBtn" class="text-gray-500 hover:text-yellow-400 hidden transition-colors" title="Rename Database">
-                        <i class="ph ph-pencil-simple text-lg"></i>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <span id="currentFolderName" class="text-sm text-gray-400">Select a Database</span>
+                        <button id="favoritesFilterBtn" class="text-gray-500 hover:text-yellow-400 hidden transition-colors text-xs" title="Show Favorites">
+                            <i class="ph ph-star"></i> Favorites
+                        </button>
+                        <button id="recentFilterBtn" class="text-gray-500 hover:text-yellow-400 hidden transition-colors text-xs" title="Show Recent">
+                            <i class="ph ph-clock"></i> Recent
+                        </button>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="addContactBtn" class="text-gray-500 hover:text-yellow-400 hidden transition-colors" title="Add Contact">
+                            <i class="ph ph-plus text-lg"></i>
+                        </button>
+                        <button id="renameFolderBtn" class="text-gray-500 hover:text-yellow-400 hidden transition-colors" title="Rename Database">
+                            <i class="ph ph-pencil-simple text-lg"></i>
+                        </button>
+                        <button id="deleteFolderBtn" class="text-gray-500 hover:text-red-400 hidden transition-colors" title="Delete Database">
+                            <i class="ph ph-trash text-lg"></i>
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -269,13 +391,13 @@
     </div>
 
     <!-- MODALS -->
-    <!-- Edit Contact Modal -->
+    <!-- Add/Edit Contact Modal -->
     <div id="editContactModal" class="fixed inset-0 glass-overlay z-50 flex justify-center items-center hidden">
         <div class="bat-panel w-full max-w-md p-6 shadow-2xl relative">
             <button onclick="closeModal('editContactModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
                 <i class="ph ph-x text-xl"></i>
             </button>
-            <h3 class="text-xl font-bold text-white mb-6 tracking-wide">UPDATE <span class="text-yellow-400">TARGET</span></h3>
+            <h3 id="contactModalTitle" class="text-xl font-bold text-white mb-6 tracking-wide">UPDATE <span class="text-yellow-400">TARGET</span></h3>
             
             <form id="editContactForm" class="space-y-4">
                 <input type="hidden" id="editContactId">
@@ -290,6 +412,14 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1 uppercase">Phone</label>
                     <input type="text" id="editContactPhone" class="bat-input w-full px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase">Notes</label>
+                    <textarea id="editContactNotes" class="bat-input w-full px-3 py-2" rows="3" placeholder="Add notes or tags..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase">Tags (comma separated)</label>
+                    <input type="text" id="editContactTags" class="bat-input w-full px-3 py-2" placeholder="work, family, important...">
                 </div>
                 <div class="flex justify-end space-x-3 mt-6">
                     <button type="button" onclick="closeModal('editContactModal')" class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancel</button>
@@ -320,6 +450,61 @@
         </div>
     </div>
 
+    <!-- Change PIN Modal -->
+    <div id="changePinModal" class="fixed inset-0 glass-overlay z-50 flex justify-center items-center hidden">
+        <div class="bat-panel w-full max-w-sm p-6 shadow-2xl relative">
+            <button onclick="closeModal('changePinModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-6 tracking-wide">CHANGE <span class="text-yellow-400">PIN</span></h3>
+            
+            <form id="changePinForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase">Current PIN</label>
+                    <input type="password" id="currentPin" class="bat-input w-full px-3 py-2 text-center tracking-widest" maxlength="6" pattern="[0-9]{6}" required autocomplete="off">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase">New PIN (6 digits)</label>
+                    <input type="password" id="newPin" class="bat-input w-full px-3 py-2 text-center tracking-widest" maxlength="6" pattern="[0-9]{6}" required autocomplete="off">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase">Confirm New PIN</label>
+                    <input type="password" id="confirmPin" class="bat-input w-full px-3 py-2 text-center tracking-widest" maxlength="6" pattern="[0-9]{6}" required autocomplete="off">
+                </div>
+                <div id="pinError" class="text-red-500 text-sm hidden text-center bg-red-900/20 py-2 rounded border border-red-900/50"></div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('changePinModal')" class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancel</button>
+                    <button type="submit" class="bat-btn px-6 py-2 text-sm">Update PIN</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Filter Modal -->
+    <div id="filterModal" class="fixed inset-0 glass-overlay z-50 flex justify-center items-center hidden">
+        <div class="bat-panel w-full max-w-sm p-6 shadow-2xl relative">
+            <button onclick="closeModal('filterModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-6 tracking-wide">FILTER <span class="text-yellow-400">CONTACTS</span></h3>
+            
+            <div class="space-y-3">
+                <button onclick="window.applyFilter('all')" class="bat-btn-outline w-full py-2 text-sm text-left px-4">
+                    <i class="ph ph-users mr-2"></i>All Contacts
+                </button>
+                <button onclick="window.applyFilter('no-email')" class="bat-btn-outline w-full py-2 text-sm text-left px-4">
+                    <i class="ph ph-envelope-simple-slash mr-2"></i>Missing Email
+                </button>
+                <button onclick="window.applyFilter('no-phone')" class="bat-btn-outline w-full py-2 text-sm text-left px-4">
+                    <i class="ph ph-phone-slash mr-2"></i>Missing Phone
+                </button>
+                <button onclick="window.applyFilter('incomplete')" class="bat-btn-outline w-full py-2 text-sm text-left px-4">
+                    <i class="ph ph-warning mr-2"></i>Incomplete Info
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Merge Duplicates Modal -->
     <div id="mergeDuplicatesModal" class="fixed inset-0 glass-overlay z-50 flex justify-center items-center hidden">
         <div class="bat-panel w-full max-w-2xl p-6 shadow-2xl relative max-h-[80vh] overflow-y-auto">
@@ -334,6 +519,64 @@
             
             <div id="duplicatesList" class="space-y-4">
                 <!-- Duplicate groups injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Move Contact Modal -->
+    <div id="moveContactModal" class="fixed inset-0 glass-overlay z-50 flex justify-center items-center hidden">
+        <div class="bat-panel w-full max-w-sm p-6 shadow-2xl relative">
+            <button onclick="closeModal('moveContactModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-6 tracking-wide">MOVE <span class="text-yellow-400">CONTACT</span></h3>
+            
+            <form id="moveContactForm" class="space-y-4">
+                <input type="hidden" id="moveContactId">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1 uppercase">Select Database</label>
+                    <select id="moveToFolder" class="bat-input w-full px-3 py-2" required>
+                        <option value="">Choose database...</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal('moveContactModal')" class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancel</button>
+                    <button type="submit" class="bat-btn px-6 py-2 text-sm">Move</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Actions Modal -->
+    <div id="bulkActionsModal" class="fixed inset-0 glass-overlay z-50 flex justify-center items-center hidden">
+        <div class="bat-panel w-full max-w-sm p-6 shadow-2xl relative">
+            <button onclick="closeModal('bulkActionsModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-6 tracking-wide">BULK <span class="text-yellow-400">ACTIONS</span></h3>
+            
+            <div class="space-y-3">
+                <p class="text-sm text-gray-400 mb-4"><span id="selectedCount" class="text-yellow-400">0</span> contacts selected</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Options Modal -->
+    <div id="bulkOptionsModal" class="fixed inset-0 glass-overlay z-50 flex justify-center items-center hidden">
+        <div class="bat-panel w-full max-w-sm p-6 shadow-2xl relative">
+            <button onclick="closeModal('bulkOptionsModal')" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-6 tracking-wide">BULK <span class="text-yellow-400">ACTIONS</span></h3>
+            
+            <div class="space-y-3">
+                <p class="text-sm text-gray-400 mb-4"><span id="selectedCountOptions" class="text-yellow-400">0</span> contacts selected</p>
+                <button onclick="window.bulkMove()" class="bat-btn-outline w-full py-2 text-sm">
+                    <i class="ph ph-arrows-left-right mr-2"></i>Move Selected
+                </button>
+                <button onclick="window.bulkDelete()" class="bat-btn-outline w-full py-2 text-sm text-red-400 border-red-400 hover:bg-red-900/20">
+                    <i class="ph ph-trash mr-2"></i>Delete Selected
+                </button>
             </div>
         </div>
     </div>
@@ -360,6 +603,62 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        // Access code protection (basic deterrent - NOT secure against determined users)
+        let ACCESS_CODE = localStorage.getItem('pear_pin') || '123456'; // Default PIN
+        let accessGranted = sessionStorage.getItem('pear_access') === 'granted';
+        
+        // Disable right-click and common shortcuts (basic deterrent only)
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+                (e.ctrlKey && e.shiftKey && e.key === 'J') || (e.ctrlKey && e.key === 'U')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Check access on load
+        if (!accessGranted) {
+            document.getElementById('loadingView').classList.add('hidden');
+            document.getElementById('accessCodeView').classList.remove('hidden');
+        }
+        
+        // Numpad functions
+        window.addPinDigit = (digit) => {
+            const input = document.getElementById('accessCode');
+            if (input.value.length < 6) {
+                input.value += digit;
+            }
+        };
+
+        window.clearPin = () => {
+            document.getElementById('accessCode').value = '';
+        };
+
+        window.backspacePin = () => {
+            const input = document.getElementById('accessCode');
+            input.value = input.value.slice(0, -1);
+        };
+
+        // Access code form handler
+        document.getElementById('accessCodeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const code = document.getElementById('accessCode').value;
+            const errorDiv = document.getElementById('accessError');
+            
+            if (code === ACCESS_CODE) {
+                sessionStorage.setItem('pear_access', 'granted');
+                accessGranted = true;
+                document.getElementById('accessCodeView').classList.add('hidden');
+                document.getElementById('loadingView').classList.remove('hidden');
+            } else {
+                errorDiv.textContent = 'Invalid access code';
+                errorDiv.classList.remove('hidden');
+                document.getElementById('accessCode').value = '';
+                setTimeout(() => errorDiv.classList.add('hidden'), 3000);
+            }
+        });
         
         // Strict Scoped Paths for Security and Sandbox Rules (Mandatory Rule 1)
         const APP_NAMESPACE = "aspirehub";
@@ -417,10 +716,40 @@
             renameFolderForm: document.getElementById('renameFolderForm'),
             mergeDuplicatesModal: document.getElementById('mergeDuplicatesModal'),
             duplicatesList: document.getElementById('duplicatesList'),
+            moveContactModal: document.getElementById('moveContactModal'),
+            moveContactForm: document.getElementById('moveContactForm'),
+            bulkActionsModal: document.getElementById('bulkActionsModal'),
+            bulkOptionsModal: document.getElementById('bulkOptionsModal'),
+            addContactBtn: document.getElementById('addContactBtn'),
+            deleteFolderBtn: document.getElementById('deleteFolderBtn'),
+            exportBtn: document.getElementById('exportBtn'),
+            selectModeBtn: document.getElementById('selectModeBtn'),
+            doneSelectBtn: document.getElementById('doneSelectBtn'),
+            cancelSelectBtn: document.getElementById('cancelSelectBtn'),
+            sortBtn: document.getElementById('sortBtn'),
+            filterBtn: document.getElementById('filterBtn'),
+            filterModal: document.getElementById('filterModal'),
+            favoritesFilterBtn: document.getElementById('favoritesFilterBtn'),
+            recentFilterBtn: document.getElementById('recentFilterBtn'),
+            backupBtn: document.getElementById('backupBtn'),
+            changePinBtn: document.getElementById('changePinBtn'),
+            changePinModal: document.getElementById('changePinModal'),
+            changePinForm: document.getElementById('changePinForm'),
         };
+
+        let selectedContacts = new Set();
+        let bulkSelectMode = false;
+        let isSelecting = false;
+        let selectionBox = null;
+        let startX, startY;
+        let currentSort = 'name';
+        let currentFilter = 'all';
+        let showFavoritesOnly = false;
+        let showRecentOnly = false;
 
         // --- Authentication Logic ---
         onAuthStateChanged(auth, (user) => {
+            if (!accessGranted) return; // Block if access code not entered
             ui.loadingView.classList.add('hidden');
             if (user) {
                 currentUser = user;
@@ -471,6 +800,46 @@
 
         ui.logoutBtn.addEventListener('click', () => signOut(auth));
 
+        // Change PIN functionality
+        ui.changePinBtn.addEventListener('click', () => {
+            ui.changePinModal.classList.remove('hidden');
+            document.getElementById('currentPin').value = '';
+            document.getElementById('newPin').value = '';
+            document.getElementById('confirmPin').value = '';
+            document.getElementById('pinError').classList.add('hidden');
+        });
+
+        ui.changePinForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const currentPin = document.getElementById('currentPin').value;
+            const newPin = document.getElementById('newPin').value;
+            const confirmPin = document.getElementById('confirmPin').value;
+            const errorDiv = document.getElementById('pinError');
+
+            if (currentPin !== ACCESS_CODE) {
+                errorDiv.textContent = 'Current PIN is incorrect';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (newPin.length !== 6 || !/^[0-9]{6}$/.test(newPin)) {
+                errorDiv.textContent = 'New PIN must be 6 digits';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (newPin !== confirmPin) {
+                errorDiv.textContent = 'New PINs do not match';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            localStorage.setItem('pear_pin', newPin);
+            ACCESS_CODE = newPin;
+            alert('PIN changed successfully!');
+            window.closeModal('changePinModal');
+        });
+
         // --- Mobile Menu Logic ---
         function toggleMobileMenu() {
             const isClosed = ui.sidebar.classList.contains('-translate-x-full');
@@ -516,9 +885,19 @@
                 snapshot.forEach(doc => {
                     contactsData.push({ id: doc.id, ...doc.data() });
                 });
+                updateTotalContactsCount();
+                renderFolders();
                 renderContacts();
                 detectDuplicates();
             }, (error) => console.error("Contacts listen error:", error));
+        }
+
+        function updateTotalContactsCount() {
+            const totalCount = contactsData.length;
+            const countElement = document.getElementById('totalContactsCount');
+            if (countElement) {
+                countElement.textContent = totalCount;
+            }
         }
 
         // Detect duplicates
@@ -645,6 +1024,7 @@
 
             foldersData.forEach(folder => {
                 const isActive = folder.id === activeFolderId;
+                const folderContactCount = contactsData.filter(c => c.folderId === folder.id).length;
                 const div = document.createElement('div');
                 div.className = `flex items-center justify-between p-3 rounded cursor-pointer transition-colors ${isActive ? 'bg-[#1a1a1a] border-l-2 border-yellow-400' : 'hover:bg-[#111]'}`;
                 div.innerHTML = `
@@ -652,6 +1032,7 @@
                         <i class="ph ph-folder text-lg ${isActive ? 'text-yellow-400' : 'text-gray-500'} mr-3 shrink-0"></i>
                         <span class="text-sm truncate ${isActive ? 'text-white font-medium' : 'text-gray-400'}">${folder.name}</span>
                     </div>
+                    <span class="text-xs ${isActive ? 'text-yellow-400' : 'text-gray-500'} font-medium ml-2">${folderContactCount}</span>
                 `;
                 ui.folderList.appendChild(div);
             });
@@ -665,10 +1046,23 @@
                 const folder = foldersData.find(f => f.id === folderId);
                 ui.currentFolderName.textContent = folder ? folder.name : 'Unknown Database';
                 ui.renameFolderBtn.classList.remove('hidden');
+                ui.deleteFolderBtn.classList.remove('hidden');
+                ui.addContactBtn.classList.remove('hidden');
+                ui.favoritesFilterBtn.classList.remove('hidden');
+                ui.recentFilterBtn.classList.remove('hidden');
             } else {
                 ui.currentFolderName.textContent = 'Select a Database';
                 ui.renameFolderBtn.classList.add('hidden');
+                ui.deleteFolderBtn.classList.add('hidden');
+                ui.addContactBtn.classList.add('hidden');
+                ui.favoritesFilterBtn.classList.add('hidden');
+                ui.recentFilterBtn.classList.add('hidden');
             }
+            selectedContacts.clear();
+            bulkSelectMode = false;
+            showFavoritesOnly = false;
+            showRecentOnly = false;
+            currentFilter = 'all';
             renderContacts();
 
             // Auto-close sidebar on mobile after selection
@@ -690,6 +1084,26 @@
                 ? contactsData.filter(c => c.folderId === activeFolderId)
                 : contactsData;
             
+            // Apply field filters
+            if (currentFilter === 'no-email') {
+                folderContacts = folderContacts.filter(c => !c.email || c.email.trim() === '');
+            } else if (currentFilter === 'no-phone') {
+                folderContacts = folderContacts.filter(c => !c.phone || c.phone.trim() === '');
+            } else if (currentFilter === 'incomplete') {
+                folderContacts = folderContacts.filter(c => !c.email || !c.phone || c.email.trim() === '' || c.phone.trim() === '');
+            }
+            
+            // Apply favorites filter
+            if (showFavoritesOnly) {
+                folderContacts = folderContacts.filter(c => c.favorite);
+            }
+            
+            // Apply recent filter (last 7 days)
+            if (showRecentOnly) {
+                const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+                folderContacts = folderContacts.filter(c => (c.updatedAt || c.createdAt || 0) > sevenDaysAgo);
+            }
+            
             if (currentSearchQuery) {
                 folderContacts = folderContacts.filter(c => 
                     (c.name && c.name.toLowerCase().includes(currentSearchQuery)) ||
@@ -706,12 +1120,17 @@
 
             ui.emptyState.classList.add('hidden');
 
-            // Sort contacts by name
-            folderContacts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            // Sort contacts
+            if (currentSort === 'name') {
+                folderContacts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            } else if (currentSort === 'date') {
+                folderContacts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            }
 
             folderContacts.forEach(contact => {
                 const card = document.createElement('div');
-                card.className = "bat-panel p-3 group hover:border-yellow-400/50 transition-colors flex flex-col relative";
+                card.className = "bat-panel p-3 group hover:border-yellow-400/50 transition-colors flex flex-col relative contact-card";
+                card.dataset.contactId = contact.id;
                 
                 const photoHtml = contact.photo 
                     ? `<img src="${contact.photo}" alt="${contact.name}" class="w-8 h-8 rounded object-cover mr-2 shrink-0 border border-[#2a2a2a]">`
@@ -719,11 +1138,27 @@
                         ${contact.name ? contact.name.charAt(0).toUpperCase() : '?'}
                        </div>`;
 
-                // Card Edit Button (Hidden by default, shown on group hover)
+                // Card with star and menu
                 card.innerHTML = `
-                    <button onclick="window.openEditContact('${contact.id}')" class="absolute top-2 right-2 text-gray-600 hover:text-yellow-400 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <i class="ph ph-pencil-simple text-base"></i>
-                    </button>
+                    <div class="absolute top-2 right-2 flex gap-1">
+                        <button onclick="window.toggleFavorite('${contact.id}')" class="text-gray-600 hover:text-yellow-400 transition-colors">
+                            <i class="ph${contact.favorite ? '-fill' : ''} ph-star text-base ${contact.favorite ? 'text-yellow-400' : ''}"></i>
+                        </button>
+                        <button onclick="window.toggleContactMenu(event, '${contact.id}')" class="text-gray-600 hover:text-yellow-400 transition-colors">
+                            <i class="ph ph-dots-three-vertical text-base"></i>
+                        </button>
+                        <div id="menu-${contact.id}" class="hidden absolute right-0 mt-1 bat-panel py-1 shadow-xl z-10 min-w-[120px]">
+                            <button onclick="window.openEditContact('${contact.id}')" class="w-full px-4 py-2 text-left text-sm text-gray-300 hover:text-yellow-400 hover:bg-[#1a1a1a] flex items-center">
+                                <i class="ph ph-pencil-simple mr-2"></i>Edit
+                            </button>
+                            <button onclick="window.openMoveContact('${contact.id}')" class="w-full px-4 py-2 text-left text-sm text-gray-300 hover:text-yellow-400 hover:bg-[#1a1a1a] flex items-center">
+                                <i class="ph ph-arrows-left-right mr-2"></i>Move
+                            </button>
+                            <button onclick="window.deleteContact('${contact.id}')" class="w-full px-4 py-2 text-left text-sm text-red-400 hover:text-red-300 hover:bg-[#1a1a1a] flex items-center">
+                                <i class="ph ph-trash mr-2"></i>Delete
+                            </button>
+                        </div>
+                    </div>
                     <div class="flex items-center mb-2">
                         ${photoHtml}
                         <div class="overflow-hidden">
@@ -743,6 +1178,9 @@
                     <div class="flex gap-2 mt-3 pt-2 border-t border-[#2a2a2a]">
                         <button onclick="window.callContact('${contact.phone}')" class="flex-1 flex items-center justify-center gap-1 py-1.5 text-gray-400 hover:text-yellow-400 hover:bg-[#1a1a1a] rounded transition-colors" title="Call">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                        </button>
+                        <button onclick="window.whatsappContact('${contact.phone}')" class="flex-1 flex items-center justify-center gap-1 py-1.5 text-gray-400 hover:text-green-400 hover:bg-[#1a1a1a] rounded transition-colors" title="WhatsApp">
+                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
                         </button>
                         <button onclick="window.copyContact('${contact.phone}')" class="flex-1 flex items-center justify-center gap-1 py-1.5 text-gray-400 hover:text-yellow-400 hover:bg-[#1a1a1a] rounded transition-colors" title="Copy">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
@@ -787,16 +1225,54 @@
         });
 
         // Edit Contact
+        window.toggleContactMenu = (event, contactId) => {
+            event.stopPropagation();
+            const menu = document.getElementById(`menu-${contactId}`);
+            const allMenus = document.querySelectorAll('[id^="menu-"]');
+            allMenus.forEach(m => { if (m !== menu) m.classList.add('hidden'); });
+            menu.classList.toggle('hidden');
+        };
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'));
+        });
+
+        // Feature 2: Add Contact Manually
+        ui.addContactBtn.addEventListener('click', () => {
+            if (!activeFolderId) return;
+            document.getElementById('contactModalTitle').innerHTML = 'ADD <span class="text-yellow-400">CONTACT</span>';
+            document.getElementById('editContactId').value = '';
+            document.getElementById('editContactName').value = '';
+            document.getElementById('editContactEmail').value = '';
+            document.getElementById('editContactPhone').value = '';
+            document.getElementById('editContactNotes').value = '';
+            document.getElementById('editContactTags').value = '';
+            ui.editContactModal.classList.remove('hidden');
+        });
+
         window.openEditContact = (contactId) => {
             const contact = contactsData.find(c => c.id === contactId);
             if (!contact) return;
             
+            document.getElementById('contactModalTitle').innerHTML = 'UPDATE <span class="text-yellow-400">TARGET</span>';
             document.getElementById('editContactId').value = contact.id;
             document.getElementById('editContactName').value = contact.name || '';
             document.getElementById('editContactEmail').value = contact.email || '';
             document.getElementById('editContactPhone').value = contact.phone || '';
+            document.getElementById('editContactNotes').value = contact.notes || '';
+            document.getElementById('editContactTags').value = contact.tags || '';
             
             ui.editContactModal.classList.remove('hidden');
+        };
+
+        window.deleteContact = async (contactId) => {
+            if (!currentUser || !confirm('Delete this contact?')) return;
+            try {
+                await deleteDoc(getContactDoc(currentUser.uid, contactId));
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Failed to delete contact.');
+            }
         };
 
         // Contact Actions
@@ -834,22 +1310,368 @@
 
         ui.editContactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!currentUser) return;
+            if (!currentUser || !activeFolderId) return;
             
             const id = document.getElementById('editContactId').value;
-            const updates = {
+            const data = {
                 name: document.getElementById('editContactName').value.trim(),
                 email: document.getElementById('editContactEmail').value.trim(),
-                phone: document.getElementById('editContactPhone').value.trim()
+                phone: document.getElementById('editContactPhone').value.trim(),
+                notes: document.getElementById('editContactNotes').value.trim(),
+                tags: document.getElementById('editContactTags').value.trim(),
+                updatedAt: Date.now()
             };
 
             try {
-                await updateDoc(getContactDoc(currentUser.uid, id), updates);
+                if (id) {
+                    await updateDoc(getContactDoc(currentUser.uid, id), data);
+                } else {
+                    await addDoc(getContactsRef(currentUser.uid), {
+                        ...data,
+                        folderId: activeFolderId,
+                        photo: null,
+                        favorite: false,
+                        createdAt: Date.now()
+                    });
+                }
                 window.closeModal('editContactModal');
             } catch (error) {
-                console.error("Error updating contact:", error);
-                alert("Failed to update target.");
+                console.error("Error saving contact:", error);
+                alert("Failed to save contact.");
             }
+        });
+
+        // Feature 3: Delete Database
+        ui.deleteFolderBtn.addEventListener('click', async () => {
+            if (!activeFolderId || !currentUser) return;
+            const folder = foldersData.find(f => f.id === activeFolderId);
+            if (!confirm(`Delete database "${folder?.name}" and all its contacts?`)) return;
+
+            try {
+                const batch = writeBatch(db);
+                batch.delete(getFolderDoc(currentUser.uid, activeFolderId));
+                contactsData.filter(c => c.folderId === activeFolderId).forEach(c => {
+                    batch.delete(getContactDoc(currentUser.uid, c.id));
+                });
+                await batch.commit();
+                selectFolder(null);
+            } catch (error) {
+                console.error('Delete folder error:', error);
+                alert('Failed to delete database.');
+            }
+        });
+
+        // Feature 1: Export Database
+        ui.exportBtn.addEventListener('click', () => {
+            if (!activeFolderId) {
+                alert('Please select a database to export.');
+                return;
+            }
+            const folder = foldersData.find(f => f.id === activeFolderId);
+            const contacts = contactsData.filter(c => c.folderId === activeFolderId);
+            
+            if (contacts.length === 0) {
+                alert('No contacts to export.');
+                return;
+            }
+
+            let csv = 'Name,Email,Phone\n';
+            contacts.forEach(c => {
+                csv += `"${c.name || ''}","${c.email || ''}","${c.phone || ''}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${folder?.name || 'contacts'}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Feature 5: Move Contact
+        window.openMoveContact = (contactId) => {
+            document.getElementById('moveContactId').value = contactId;
+            const select = document.getElementById('moveToFolder');
+            select.innerHTML = '<option value="">Choose database...</option>';
+            foldersData.forEach(f => {
+                if (f.id !== activeFolderId) {
+                    select.innerHTML += `<option value="${f.id}">${f.name}</option>`;
+                }
+            });
+            ui.moveContactModal.classList.remove('hidden');
+        };
+
+        ui.moveContactForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+            const contactIds = document.getElementById('moveContactId').value.split(',');
+            const newFolderId = document.getElementById('moveToFolder').value;
+            if (!newFolderId) return;
+
+            try {
+                if (contactIds.length > 1) {
+                    const batch = writeBatch(db);
+                    contactIds.forEach(id => {
+                        batch.update(getContactDoc(currentUser.uid, id), { folderId: newFolderId });
+                    });
+                    await batch.commit();
+                    selectedContacts.clear();
+                    document.querySelectorAll('.contact-card').forEach(c => c.classList.remove('selected'));
+                    bulkSelectMode = false;
+                } else {
+                    await updateDoc(getContactDoc(currentUser.uid, contactIds[0]), { folderId: newFolderId });
+                }
+                window.closeModal('moveContactModal');
+            } catch (error) {
+                console.error('Move error:', error);
+                alert('Failed to move contact(s).');
+            }
+        });
+
+        // Feature 4: Bulk Selection with drag-to-select
+        ui.selectModeBtn.addEventListener('click', () => {
+            bulkSelectMode = true;
+            ui.selectModeBtn.classList.add('hidden');
+            ui.doneSelectBtn.classList.remove('hidden');
+            ui.cancelSelectBtn.classList.remove('hidden');
+        });
+
+        ui.doneSelectBtn.addEventListener('click', () => {
+            if (selectedContacts.size === 0) {
+                alert('Please select at least one contact');
+                return;
+            }
+            window.showBulkOptions();
+        });
+
+        ui.cancelSelectBtn.addEventListener('click', () => {
+            bulkSelectMode = false;
+            ui.selectModeBtn.classList.remove('hidden');
+            ui.doneSelectBtn.classList.add('hidden');
+            ui.cancelSelectBtn.classList.add('hidden');
+            selectedContacts.clear();
+            document.querySelectorAll('.contact-card').forEach(c => c.classList.remove('selected'));
+        });
+
+        ui.sortBtn.addEventListener('click', () => {
+            currentSort = currentSort === 'name' ? 'date' : 'name';
+            ui.sortBtn.innerHTML = currentSort === 'name' 
+                ? '<i class="ph ph-sort-ascending"></i>' 
+                : '<i class="ph ph-calendar"></i>';
+            renderContacts();
+        });
+
+        // Feature 7: Filter by field
+        ui.filterBtn.addEventListener('click', () => {
+            ui.filterModal.classList.remove('hidden');
+        });
+
+        window.applyFilter = (filter) => {
+            currentFilter = filter;
+            window.closeModal('filterModal');
+            renderContacts();
+        };
+
+        // Feature 8: Favorites
+        ui.favoritesFilterBtn.addEventListener('click', () => {
+            showFavoritesOnly = !showFavoritesOnly;
+            ui.favoritesFilterBtn.style.color = showFavoritesOnly ? 'var(--bat-yellow)' : '';
+            renderContacts();
+        });
+
+        window.toggleFavorite = async (contactId) => {
+            if (!currentUser) return;
+            const contact = contactsData.find(c => c.id === contactId);
+            if (!contact) return;
+            try {
+                await updateDoc(getContactDoc(currentUser.uid, contactId), { 
+                    favorite: !contact.favorite,
+                    updatedAt: Date.now()
+                });
+            } catch (error) {
+                console.error('Toggle favorite error:', error);
+            }
+        };
+
+        // Feature 10: Recent activity
+        ui.recentFilterBtn.addEventListener('click', () => {
+            showRecentOnly = !showRecentOnly;
+            ui.recentFilterBtn.style.color = showRecentOnly ? 'var(--bat-yellow)' : '';
+            renderContacts();
+        });
+
+        // Feature 12: Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                ui.searchInput.focus();
+            }
+        });
+
+        ui.contactsGrid.addEventListener('mousedown', (e) => {
+            if (!bulkSelectMode) return;
+            
+            // Don't start selection if clicking on menu button or menu items
+            if (e.target.closest('button') || e.target.closest('[id^="menu-"]')) {
+                return;
+            }
+            
+            if (e.target.closest('.contact-card')) {
+                const card = e.target.closest('.contact-card');
+                const contactId = card.dataset.contactId;
+                if (selectedContacts.has(contactId)) {
+                    selectedContacts.delete(contactId);
+                    card.classList.remove('selected');
+                } else {
+                    selectedContacts.add(contactId);
+                    card.classList.add('selected');
+                }
+                updateBulkActions();
+                return;
+            }
+            
+            isSelecting = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            selectionBox = document.createElement('div');
+            selectionBox.className = 'selection-box';
+            selectionBox.style.left = startX + 'px';
+            selectionBox.style.top = startY + 'px';
+            document.body.appendChild(selectionBox);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isSelecting || !selectionBox) return;
+            
+            const currentX = e.clientX;
+            const currentY = e.clientY;
+            const width = Math.abs(currentX - startX);
+            const height = Math.abs(currentY - startY);
+            const left = Math.min(currentX, startX);
+            const top = Math.min(currentY, startY);
+            
+            selectionBox.style.left = left + 'px';
+            selectionBox.style.top = top + 'px';
+            selectionBox.style.width = width + 'px';
+            selectionBox.style.height = height + 'px';
+            
+            const boxRect = selectionBox.getBoundingClientRect();
+            document.querySelectorAll('.contact-card').forEach(card => {
+                const cardRect = card.getBoundingClientRect();
+                const isIntersecting = !(
+                    boxRect.right < cardRect.left ||
+                    boxRect.left > cardRect.right ||
+                    boxRect.bottom < cardRect.top ||
+                    boxRect.top > cardRect.bottom
+                );
+                
+                const contactId = card.dataset.contactId;
+                if (isIntersecting) {
+                    selectedContacts.add(contactId);
+                    card.classList.add('selected');
+                } else {
+                    selectedContacts.delete(contactId);
+                    card.classList.remove('selected');
+                }
+            });
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isSelecting && selectionBox) {
+                document.body.removeChild(selectionBox);
+                selectionBox = null;
+                isSelecting = false;
+                updateBulkActions();
+            }
+        });
+
+        function updateBulkActions() {
+            document.getElementById('selectedCount').textContent = selectedContacts.size;
+            document.getElementById('selectedCountOptions').textContent = selectedContacts.size;
+            // Don't show any modal automatically, just update the count
+        }
+
+        window.showBulkOptions = () => {
+            if (selectedContacts.size === 0) return;
+            ui.bulkOptionsModal.classList.remove('hidden');
+        };
+
+        window.toggleContactSelect = (contactId) => {
+            const card = document.querySelector(`[data-contact-id="${contactId}"]`);
+            if (selectedContacts.has(contactId)) {
+                selectedContacts.delete(contactId);
+                card?.classList.remove('selected');
+            } else {
+                selectedContacts.add(contactId);
+                card?.classList.add('selected');
+            }
+            updateBulkActions();
+        };
+
+        window.bulkDelete = async () => {
+            if (!currentUser || selectedContacts.size === 0) return;
+            if (!confirm(`Delete ${selectedContacts.size} selected contacts?`)) return;
+
+            try {
+                const batch = writeBatch(db);
+                selectedContacts.forEach(id => {
+                    batch.delete(getContactDoc(currentUser.uid, id));
+                });
+                await batch.commit();
+                selectedContacts.clear();
+                document.querySelectorAll('.contact-card').forEach(c => c.classList.remove('selected'));
+                window.closeModal('bulkActionsModal');
+                window.closeModal('bulkOptionsModal');
+                bulkSelectMode = false;
+            } catch (error) {
+                console.error('Bulk delete error:', error);
+                alert('Failed to delete contacts.');
+            }
+        };
+
+        window.bulkMove = () => {
+            if (selectedContacts.size === 0) return;
+            const select = document.getElementById('moveToFolder');
+            select.innerHTML = '<option value="">Choose database...</option>';
+            foldersData.forEach(f => {
+                if (f.id !== activeFolderId) {
+                    select.innerHTML += `<option value="${f.id}">${f.name}</option>`;
+                }
+            });
+            document.getElementById('moveContactId').value = Array.from(selectedContacts).join(',');
+            window.closeModal('bulkActionsModal');
+            window.closeModal('bulkOptionsModal');
+            ui.moveContactModal.classList.remove('hidden');
+        };
+
+        // Feature 15: WhatsApp Integration
+        window.whatsappContact = (phone) => {
+            if (phone && phone !== 'N/A') {
+                const cleanPhone = phone.replace(/\D/g, '');
+                window.open(`https://wa.me/${cleanPhone}`, '_blank');
+            }
+        };
+
+        // Feature 14: Backup/Restore
+        ui.backupBtn.addEventListener('click', async () => {
+            if (!currentUser) return;
+            
+            const backup = {
+                version: '1.0',
+                timestamp: Date.now(),
+                folders: foldersData,
+                contacts: contactsData
+            };
+            
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pear-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
         });
 
         // --- File Import & Parsing Logic ---
@@ -965,6 +1787,10 @@
             return contacts;
         }
 
+        function decodeQuotedPrintable(str) {
+            return str.replace(/=([0-9A-F]{2})/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+        }
+
         function parseVCF(text) {
             const contacts = [];
             // Unfold lines that VCF wraps with a leading space or tab
@@ -980,7 +1806,11 @@
                 lines.forEach(line => {
                     const upperLine = line.toUpperCase();
                     if (upperLine.startsWith('FN:') || upperLine.startsWith('FN;')) {
-                        contact.name = line.substring(line.indexOf(':') + 1).trim();
+                        let value = line.substring(line.indexOf(':') + 1).trim();
+                        if (line.toUpperCase().includes('QUOTED-PRINTABLE')) {
+                            value = decodeQuotedPrintable(value);
+                        }
+                        contact.name = value;
                     } else if (upperLine.startsWith('EMAIL:') || upperLine.startsWith('EMAIL;')) {
                         contact.email = line.substring(line.indexOf(':') + 1).trim();
                     } else if (upperLine.startsWith('TEL:') || upperLine.startsWith('TEL;')) {
